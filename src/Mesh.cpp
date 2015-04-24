@@ -219,22 +219,19 @@ Mesh Mesh::subdivide() const
 
     //1. Ajouter le barycentre de chaque face du maillage
 
-    vector<int> listBFaces; // liste des barycentre de chaque face. listBFaces[i] = indince barycentre de faces[i] dans la liste des vertices
-    vector<int> listBEdges; // liste des barycentre de chaque face. listBEdges[i] = indince barycentre de get_edges()[i] dans la liste des vertices
+    vector<vec3> listBFaces; // liste des barycentre de chaque face. listBFaces[i] = indince barycentre de faces[i] dans la liste des vertices
+    vector<vec3> listBEdges; // liste des barycentre de chaque face. listBEdges[i] = indince barycentre de get_edges()[i] dans la liste des vertices
     for (int i = 0; i < faces.size(); ++i) {
 
-        vec3 b, somme;
+        vec3 somme;
 
         //Recherche du barycentre b de la face f
-        for (int j = 0; j < f.size(); ++j) {
-            somme = somme+f[j];
+        for (int j = 0; j < get_face(i).size(); ++j) {
+            somme += get_face(i)[j];
         }
 
-        b = somme/f.size();
-
-        vertices.push_back(b);
-        listBFaces.push_back(vertices.size()-1);
-
+        somme /= get_face(i).size();
+        listBFaces.push_back(somme);
     }
 
     //2. Ajouter le barycentre de chaque arrête
@@ -242,19 +239,76 @@ Mesh Mesh::subdivide() const
     for (int i = 0; i < get_edges().size(); ++i) {
         Edge e = get_edges()[i];
 
-        vec3 b = (e.m_i0 + e.m_i1)/2.0f;
+        vec3 somme;
+        somme += get_vertex(e.m_i0);
+        somme += get_vertex(e.m_i1);
+        somme /= 2;
 
-        vertices.push_back(b);
-        listBEdges.push_back(vertices.size()-1);
-
+        listBEdges.push_back(somme);
     }
     
 
     //3. Construire le cube quadrillé
 
+    std::vector< Edge > edges = get_edges();
+    vector< vector< unsigned int > > facesOfEdge = get_edge_faces(edges);
+
+    vector<vec3> listBTetraedre;
+
+    for (int i = 0; i < edges.size(); ++i) {
+        Edge e = edges[i];
+        unsigned int s0 = e.m_i0;
+        unsigned int s1 = e.m_i1;
+        unsigned int f0 = facesOfEdge[i][0];
+        unsigned int f1 = facesOfEdge[i][1];
+
+        // Barycentre situe au meme indice que l'arete correspondante
+        vec3 barycentre;
+        barycentre += get_vertex(s0);
+        barycentre += get_vertex(s1);
+        barycentre += listBFaces[f0];
+        barycentre += listBFaces[f1];
+        barycentre /= 4;
+//        int x = 0.25 * (get_vertex(s0)[0] + get_vertex(s1)[0] + listBFaces[f0][0] + listBFaces[f1][0]);
+//        int y = 0.25 * (get_vertex(s0)[1] + get_vertex(s1)[1] + get_vertex(sf0)[1] + get_vertex(sf1)[1]);
+//        int z = 0.25 * (get_vertex(s0)[2] + get_vertex(s1)[2] + get_vertex(sf0)[2] + get_vertex(sf1)[2]);
+
+        listBTetraedre[i] = barycentre;
+    }
 
 
 
+    vector< vector< unsigned int > > listVertexFaces = get_vertex_faces();
+    vector< vector< unsigned int > > listVertexEdges = get_vertex_edges();
+
+    vector< unsigned int > listVertexTmp;
+
+    for (int i = 0; i < vertices.size(); ++i) {
+        vector< unsigned int > listFaces = listVertexFaces[i];
+        vector< unsigned int > listEdges = listVertexEdges[i];
+
+        // Barycentre des sfi
+        vec3 F;
+        for (int k = 0; k < listFaces.size(); ++k) {
+            F += listBFaces[k];
+        }
+        F /= listFaces.size();
+
+        // Barycentre des sai
+        vec3 A;
+        for (int k = 0; k < listEdges.size(); ++k) {
+            A += listBEdges[k];
+        }
+        A /= listEdges.size();
+
+        vec3 s = get_vertex(i);
+        int n = vertices.size();
+        int x = (F[0] + 2*A[0] + (n - 3) * s[0]) / n;
+        int y = (F[1] + 2*A[1] + (n - 3) * s[1]) / n;
+        int z = (F[2] + 2*A[2] + (n - 3) * s[2]) / n;
+
+        listVertexTmp.push_back(vec3(x, y, z));
+    }
 
 
 
