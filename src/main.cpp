@@ -16,7 +16,7 @@ using namespace std;
 
 int main()
 {
-    string input_file_name = "/home/a/amorel/m1info/geonum/base_code/data/cube_quad.off";
+    string input_file_name = "/home/henry/Documents/Qt_Project/dernierTPGeonum/data/cube_quad.off";
     
     cout << "Reading file '" << input_file_name << "'..." << endl;
     Mesh m(input_file_name.c_str());
@@ -124,13 +124,13 @@ int main()
 
     Mesh m_subdiv = m;
   
-    string output_file_name = "/home/a/amorel/m1info/geonum/base_code/output/cube_subdiv0.obj";
+    string output_file_name = "/home/henry/Documents/Qt_Project/dernierTPGeonum/output/cube_subdiv0.obj";
     
     cout << "Writing file '" << output_file_name << "'..." << endl;
     m_subdiv.write_obj(output_file_name.c_str());
     cout << "... done" << endl;
 
-    
+
     for(int i = 1; i <= 3; i++)
     {
     
@@ -148,7 +148,7 @@ int main()
         
         stringstream ss;
         ss << i;
-        output_file_name = "/home/a/amorel/m1info/geonum/base_code/output/cube_subdiv" + ss.str() + ".obj";
+        output_file_name = "/home/henry/Documents/Qt_Project/dernierTPGeonum/output/cube_subdiv" + ss.str() + ".obj";
         
         cout << "Writing file '" << output_file_name << "'..." << endl;
         m_subdiv.write_obj(output_file_name.c_str());

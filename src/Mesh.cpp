@@ -204,6 +204,34 @@ unsigned int vertices_common_face(unsigned int i0, unsigned int i1, unsigned int
     return 0;
 }
 
+unsigned int trouverFaceCommune(vector< vector< unsigned int > > &facesOfEdge, unsigned int e1, unsigned int e2) {
+
+    if (facesOfEdge[e1][0] == facesOfEdge[e2][0]) {
+        return facesOfEdge[e1][0];
+
+    } else if (facesOfEdge[e1][0] == facesOfEdge[e2][1]) {
+        return facesOfEdge[e1][0];
+
+    } else if (facesOfEdge[e1][1] == facesOfEdge[e2][0]) {
+        return facesOfEdge[e1][1];
+
+    } else if (facesOfEdge[e1][1] == facesOfEdge[e2][1]) {
+        return facesOfEdge[e1][1];
+    }
+
+    return -1;
+}
+
+int trouverDoublon(vector< vec3 > &vertices, vec3 vertex) {
+    for (int i = 0; i < vertices.size(); ++i) {
+        vec3 p = vertices[i];
+        if (p.x == vertex.x && p.y == vertex.y && p.z == vertex.z) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 Mesh Mesh::subdivide() const
 {
     Mesh output;
@@ -223,34 +251,35 @@ Mesh Mesh::subdivide() const
     vector<vec3> listBEdges; // liste des barycentre de chaque face. listBEdges[i] = indince barycentre de get_edges()[i] dans la liste des vertices
     for (int i = 0; i < faces.size(); ++i) {
 
-        vec3 somme;
+        vec3 somme(0, 0, 0);
 
         //Recherche du barycentre b de la face f
         for (int j = 0; j < get_face(i).size(); ++j) {
-            somme += get_face(i)[j];
+            somme += get_vertex(get_face(i)[j]);
         }
 
-        somme /= get_face(i).size();
+        somme /= (float) get_face(i).size();
         listBFaces.push_back(somme);
     }
 
-    //2. Ajouter le barycentre de chaque arrête
+    //1-2. Ajouter le barycentre de chaque arête
 
-    for (int i = 0; i < get_edges().size(); ++i) {
-        Edge e = get_edges()[i];
+//    for (int i = 0; i < get_edges().size(); ++i) {
+//        Edge e = get_edges()[i];
 
-        vec3 somme;
-        somme += get_vertex(e.m_i0);
-        somme += get_vertex(e.m_i1);
-        somme /= 2;
+//        vec3 somme;
+//        somme += get_vertex(e.m_i0);
+//        somme += get_vertex(e.m_i1);
+//        somme /= 2.0;
+//        listBEdges.push_back(somme);
+//    }
 
-        listBEdges.push_back(somme);
-    }
-    
 
-    //3. Construire le cube quadrillé
+    //2. Ajouter le barycentre du tetraedre
 
-    std::vector< Edge > edges = get_edges();
+    cout <<"1" << endl;
+    vector< Edge > edges = get_edges();
+    cout <<"2" << endl;
     vector< vector< unsigned int > > facesOfEdge = get_edge_faces(edges);
 
     vector<vec3> listBTetraedre;
@@ -268,20 +297,18 @@ Mesh Mesh::subdivide() const
         barycentre += get_vertex(s1);
         barycentre += listBFaces[f0];
         barycentre += listBFaces[f1];
-        barycentre /= 4;
-//        int x = 0.25 * (get_vertex(s0)[0] + get_vertex(s1)[0] + listBFaces[f0][0] + listBFaces[f1][0]);
-//        int y = 0.25 * (get_vertex(s0)[1] + get_vertex(s1)[1] + get_vertex(sf0)[1] + get_vertex(sf1)[1]);
-//        int z = 0.25 * (get_vertex(s0)[2] + get_vertex(s1)[2] + get_vertex(sf0)[2] + get_vertex(sf1)[2]);
+        barycentre /= 4.0;
 
-        listBTetraedre[i] = barycentre;
+        listBTetraedre.push_back(barycentre);
     }
 
 
+    //3. Déplacer les points du maillage
 
     vector< vector< unsigned int > > listVertexFaces = get_vertex_faces();
-    vector< vector< unsigned int > > listVertexEdges = get_vertex_edges();
+    vector< vector< unsigned int > > listVertexEdges = get_vertex_edges(get_edges());
 
-    vector< unsigned int > listVertexTmp;
+    vector< vec3 > listVertexTmp;
 
     for (int i = 0; i < vertices.size(); ++i) {
         vector< unsigned int > listFaces = listVertexFaces[i];
@@ -290,39 +317,145 @@ Mesh Mesh::subdivide() const
         // Barycentre des sfi
         vec3 F;
         for (int k = 0; k < listFaces.size(); ++k) {
-            F += listBFaces[k];
+            F += listBFaces[listFaces[k]];
         }
-        F /= listFaces.size();
+        F /= (float) listFaces.size();
 
         // Barycentre des sai
         vec3 A;
         for (int k = 0; k < listEdges.size(); ++k) {
-            A += listBEdges[k];
+            //A += listBEdges[k];
+            A += listBTetraedre[listEdges[k]];
         }
-        A /= listEdges.size();
+        A /= (float) listEdges.size();
 
         vec3 s = get_vertex(i);
         int n = vertices.size();
-        int x = (F[0] + 2*A[0] + (n - 3) * s[0]) / n;
-        int y = (F[1] + 2*A[1] + (n - 3) * s[1]) / n;
-        int z = (F[2] + 2*A[2] + (n - 3) * s[2]) / n;
+        float x = (F[0] + 2*A[0] + (n - 3) * s[0]) / n;
+        float y = (F[1] + 2*A[1] + (n - 3) * s[1]) / n;
+        float z = (F[2] + 2*A[2] + (n - 3) * s[2]) / n;
 
         listVertexTmp.push_back(vec3(x, y, z));
     }
 
 
+    //4. Former les faces avec les quadruplets
+
+    vector< unsigned int > faces;
+    vector< vec3 > vertices_mesh;
+    vector< vector< unsigned int > > faces_mesh;
+
+    for (int i = 0; i < listVertexTmp.size(); ++i) {
+        vec3 s = listVertexTmp[i];
+        //cout << "x " << s.x << ", y " << s.y << ", z " << s.z << endl;
+
+        int nbArete = listVertexEdges[i].size();
+        int w = 0;
+        int e1;
+        int e2 = listVertexEdges[i][0];
+        int k = 0;
+        do {
+            e1 = e2;
+            int f = facesOfEdge[e1][k];
+            e2 = -1;
+            for (int j = 0; j < listVertexEdges[i].size() && e2 == -1; ++j) {
+                if (j != e1) {
+                    if (facesOfEdge[j][0] == f) {
+                        e2 = j;
+                        k = 1;
+                    } else if (facesOfEdge[j][1] == f) {
+                        e2 = j;
+                        k = 0;
+                    }
+
+                }
+            }
+
+            vec3 s1 = listBTetraedre[e1];
+            vec3 s2 = listBFaces[f];
+            vec3 s3 = listBTetraedre[e2];
+
+            int ts = trouverDoublon(vertices_mesh, s);
+            if (ts == -1) {
+                vertices_mesh.push_back(s);
+                ts = vertices_mesh.size()-1;
+            }
+            int ts1 = trouverDoublon(vertices_mesh, s1);
+            if (ts1 == -1) {
+                vertices_mesh.push_back(s1);
+                ts1 = vertices_mesh.size()-1;
+            }
+            int ts2 = trouverDoublon(vertices_mesh, s2);
+            if (ts2 == -1) {
+                vertices_mesh.push_back(s2);
+                ts2 = vertices_mesh.size()-1;
+            }
+            int ts3 = trouverDoublon(vertices_mesh, s3);
+            if (ts3 == -1) {
+                vertices_mesh.push_back(s3);
+                ts3 = vertices_mesh.size()-1;
+            }
+
+            faces.clear();
+            faces.push_back(ts);
+            faces.push_back(ts1);
+            faces.push_back(ts2);
+            faces.push_back(ts3);
+
+            faces_mesh.push_back(faces);
+
+            w++;
+        } while (w < nbArete);
 
 
+//        for (int j = 0; j < nbArete; ++j) {
+//            int e1 = listVertexEdges[i][j];
+//            int e2 = listVertexEdges[i][(j+1)%nbArete];
+//            int f = trouverFaceCommune(facesOfEdge, e1, e2);
+
+//            vec3 s1 = listBTetraedre[e1];
+//            vec3 s2 = listBFaces[f];
+//            vec3 s3 = listBTetraedre[e2];
+
+//            int ts = trouverDoublon(vertices_mesh, s);
+//            if (ts == -1) {
+//                vertices_mesh.push_back(s);
+//                ts = vertices_mesh.size()-1;
+//            }
+//            int ts1 = trouverDoublon(vertices_mesh, s1);
+//            if (ts1 == -1) {
+//                vertices_mesh.push_back(s1);
+//                ts1 = vertices_mesh.size()-1;
+//            }
+//            int ts2 = trouverDoublon(vertices_mesh, s2);
+//            if (ts2 == -1) {
+//                vertices_mesh.push_back(s2);
+//                ts2 = vertices_mesh.size()-1;
+//            }
+//            int ts3 = trouverDoublon(vertices_mesh, s3);
+//            if (ts3 == -1) {
+//                vertices_mesh.push_back(s3);
+//                ts3 = vertices_mesh.size()-1;
+//            }
+
+//            faces.clear();
+//            faces.push_back(ts);
+//            faces.push_back(ts3);
+//            faces.push_back(ts2);
+//            faces.push_back(ts1);
+
+//            faces_mesh.push_back(faces);
+//        }
+    }
 
 
+    output.vertices = vertices_mesh;
+    output.faces = faces_mesh;
 
-    output = *this;     // place holder : current mesh copy
-    
-    
-    
-    
-    
-    
+
+    //output = *this;     // place holder : current mesh copy
+
+
     return output;
 }
 
@@ -330,12 +463,10 @@ Mesh Mesh::subdivide() const
 vector< vector< unsigned int > > Mesh::get_neighborhoods() const
 {
     vector< vector< unsigned int > > output;
-    
     for(unsigned int i = 0; i < vertices.size(); i++)
     {
         output.push_back(vector< unsigned int >());
     }
-    
     
     // unordered neighborhood computation
     for(unsigned int i = 0; i < faces.size(); i++)
@@ -352,7 +483,6 @@ vector< vector< unsigned int > > Mesh::get_neighborhoods() const
                 output[f[j]].push_back(next);
         }
     }
-    
 
     // neighborhood ordering
     vector< vector< unsigned int > > output2;
@@ -377,7 +507,7 @@ vector< vector< unsigned int > > Mesh::get_neighborhoods() const
             output2[i].push_back(i_prev);
         }
     }
-    
+
     return output2;
 }
 
