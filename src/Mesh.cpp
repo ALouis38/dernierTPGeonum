@@ -350,68 +350,26 @@ Mesh Mesh::subdivide() const
         //cout << "x " << s.x << ", y " << s.y << ", z " << s.z << endl;
 
         int nbArete = listVertexEdges[i].size();
-        int w = 0;
-        int e1;
-        int e2 = listVertexEdges[i][0];
-        int k = 0;
-        do {
-            e1 = e2;
-            int f = facesOfEdge[e1][k];
-            e2 = -1;
-            for (int j = 0; j < listVertexEdges[i].size() && e2 == -1; ++j) {
-                if (j != e1) {
-                    if (facesOfEdge[j][0] == f) {
-                        e2 = j;
-                        k = 1;
-                    } else if (facesOfEdge[j][1] == f) {
-                        e2 = j;
-                        k = 0;
-                    }
+//        int w = 0;
+//        int e1;
+//        int e2 = listVertexEdges[i][0];
+//        int k = 0;
+//        do {
+//            e1 = e2;
+//            int f = facesOfEdge[e1][k];
+//            e2 = -1;
+//            for (int j = 0; j < listVertexEdges[i].size() && e2 == -1; ++j) {
+//                if (j != e1) {
+//                    if (facesOfEdge[j][0] == f) {
+//                        e2 = j;
+//                        k = 1;
+//                    } else if (facesOfEdge[j][1] == f) {
+//                        e2 = j;
+//                        k = 0;
+//                    }
 
-                }
-            }
-
-            vec3 s1 = listBTetraedre[e1];
-            vec3 s2 = listBFaces[f];
-            vec3 s3 = listBTetraedre[e2];
-
-            int ts = trouverDoublon(vertices_mesh, s);
-            if (ts == -1) {
-                vertices_mesh.push_back(s);
-                ts = vertices_mesh.size()-1;
-            }
-            int ts1 = trouverDoublon(vertices_mesh, s1);
-            if (ts1 == -1) {
-                vertices_mesh.push_back(s1);
-                ts1 = vertices_mesh.size()-1;
-            }
-            int ts2 = trouverDoublon(vertices_mesh, s2);
-            if (ts2 == -1) {
-                vertices_mesh.push_back(s2);
-                ts2 = vertices_mesh.size()-1;
-            }
-            int ts3 = trouverDoublon(vertices_mesh, s3);
-            if (ts3 == -1) {
-                vertices_mesh.push_back(s3);
-                ts3 = vertices_mesh.size()-1;
-            }
-
-            faces.clear();
-            faces.push_back(ts);
-            faces.push_back(ts1);
-            faces.push_back(ts2);
-            faces.push_back(ts3);
-
-            faces_mesh.push_back(faces);
-
-            w++;
-        } while (w < nbArete);
-
-
-//        for (int j = 0; j < nbArete; ++j) {
-//            int e1 = listVertexEdges[i][j];
-//            int e2 = listVertexEdges[i][(j+1)%nbArete];
-//            int f = trouverFaceCommune(facesOfEdge, e1, e2);
+//                }
+//            }
 
 //            vec3 s1 = listBTetraedre[e1];
 //            vec3 s2 = listBFaces[f];
@@ -440,12 +398,54 @@ Mesh Mesh::subdivide() const
 
 //            faces.clear();
 //            faces.push_back(ts);
-//            faces.push_back(ts3);
-//            faces.push_back(ts2);
 //            faces.push_back(ts1);
+//            faces.push_back(ts2);
+//            faces.push_back(ts3);
 
 //            faces_mesh.push_back(faces);
-//        }
+
+//            w++;
+//        } while (w < nbArete);
+
+
+        for (int j = 0; j < nbArete; ++j) {
+            int e1 = listVertexEdges[i][j];
+            int e2 = listVertexEdges[i][(j+1)%nbArete];
+            int f = trouverFaceCommune(facesOfEdge, e1, e2);
+
+            vec3 s1 = listBTetraedre[e1];
+            vec3 s2 = listBFaces[f];
+            vec3 s3 = listBTetraedre[e2];
+
+            int ts = trouverDoublon(vertices_mesh, s);
+            if (ts == -1) {
+                vertices_mesh.push_back(s);
+                ts = vertices_mesh.size()-1;
+            }
+            int ts1 = trouverDoublon(vertices_mesh, s1);
+            if (ts1 == -1) {
+                vertices_mesh.push_back(s1);
+                ts1 = vertices_mesh.size()-1;
+            }
+            int ts2 = trouverDoublon(vertices_mesh, s2);
+            if (ts2 == -1) {
+                vertices_mesh.push_back(s2);
+                ts2 = vertices_mesh.size()-1;
+            }
+            int ts3 = trouverDoublon(vertices_mesh, s3);
+            if (ts3 == -1) {
+                vertices_mesh.push_back(s3);
+                ts3 = vertices_mesh.size()-1;
+            }
+
+            faces.clear();
+            faces.push_back(ts);
+            faces.push_back(ts3);
+            faces.push_back(ts2);
+            faces.push_back(ts1);
+
+            faces_mesh.push_back(faces);
+        }
     }
 
 
